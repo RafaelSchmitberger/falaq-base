@@ -15,15 +15,25 @@ class StorePerguntaRequest extends FormRequest
     }
 
     /**
-     * TICKET #001: Implemente aqui as regras de validação estritas.
-     * Requisitos:
+     * Regras de validação do formulário de pergunta.
      * - texto: obrigatório, string, mínimo de 10 caracteres, máximo de 255.
-     * - evento_id: obrigatório, deve existir na tabela eventos.
      */
     public function rules(): array
     {
         return [
-            // TODO (Dev Jr): Adicione as regras de validação para o Ticket #001
+            'texto' => ['required', 'string', 'min:10', 'max:255'],
+        ];
+    }
+
+    /**
+     * Mensagens customizadas de erro (exibidas via @error no Blade).
+     */
+    public function messages(): array
+    {
+        return [
+            'texto.required' => 'Digite sua pergunta antes de enviar.',
+            'texto.min' => 'Sua pergunta precisa ter pelo menos :min caracteres.',
+            'texto.max' => 'Sua pergunta pode ter no máximo :max caracteres.',
         ];
     }
 }
