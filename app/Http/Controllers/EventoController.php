@@ -1,66 +1,24 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Models;
 
-use App\Http\Requests\EventoFormRequest;
-use App\Models\Evento;
-use App\Models\Pergunta;
-use App\Http\Requests\StorePerguntaRequest;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class EventoController extends Controller
+class Pergunta extends Model
 {
-    public function index()
+    use HasFactory;
+
+    protected $fillable = ['evento_id', 'user_id', 'texto', 'status', 'is_public'];
+
+    public function evento(): BelongsTo
     {
-        $eventos = Evento::all();
-        return view('eventos.index', compact('eventos'));
+        return $this->belongsTo(Evento::class);
     }
 
-    /**
-     * TICKET #006 (MODERAÇÃO):
-     * Só traz perguntas com is_public = true, mantendo o eager loading
-     * de 'user' e a paginação já resolvidos nas sprints anteriores.
-     */
-    public function show($id)
+    public function user(): BelongsTo
     {
-        $evento = Evento::find($id);
-
-        $perguntas = Pergunta::where('evento_id', $id)
-            ->where('is_public', true)
-            ->with('user')
-            ->latest()
-            ->paginate(10);
-
-        return view('eventos.show', compact('evento', 'perguntas'));
-    }
-
-    /**
-     * TICKET #001 (BUG LEGADO DE SEGURANÇA):
-     * Salva a pergunta usando a requisição sem validações rigorosas.
-     */
-    public function storePergunta(StorePerguntaRequest $request, $id)
-    {
-        $evento = Evento::findOrFail($id);
-
-        Pergunta::create([
-            'evento_id' => $evento->id,
-            'user_id' => Auth::user()->id,
-            'texto'     => $request->input('texto'),
-            'status'    => 'pendente',
-        ]);
-
-        return redirect()->route('eventos.show', $evento->id)
-            ->with('sucesso', 'Sua pergunta foi enviada com sucesso!');
-    }
-
-
-    public function create(){
-        return view('eventos.create');
-    }
-
-    public function store(EventoFormRequest $req){
-        $evento = $req->user()->eventos()->create($req->validated());
-        return redirect()->route('eventos.show', $evento->id);
+        return $this->belongsTo(User::class);
     }
 }
