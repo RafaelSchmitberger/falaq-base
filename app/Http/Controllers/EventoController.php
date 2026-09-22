@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\EventoFormRequest;
 use App\Models\Evento;
 use App\Models\Pergunta;
 use App\Http\Requests\StorePerguntaRequest;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class EventoController extends Controller
 {
@@ -16,19 +18,19 @@ class EventoController extends Controller
     }
 
     /**
-     * TICKET #002 (BUG LEGADO DE PERFORMANCE):
-     * Atualmente esta ação executa Pergunta::all(), carregando 5.000 registros
-     * na memória, travando a página e misturando perguntas de outros eventos!
-     *
-     * AÇÃO ESPERADA:
-     * Refatore a query para filtrar pelo evento, ordenar pelas mais recentes e paginar de 10 em 10.
+     * TICKET #006 (MODERAÇÃO):
+     * Só traz perguntas com is_public = true, mantendo o eager loading
+     * de 'user' e a paginação já resolvidos nas sprints anteriores.
      */
     public function show($id)
     {
         $evento = Evento::find($id);
 
-        // ⚠ BUG LEGADO: Carrega TODOS os registros da tabela no PHP
-        $perguntas = Pergunta::all();
+        $perguntas = Pergunta::where('evento_id', $id)
+            ->where('is_public', true)
+            ->with('user')
+            ->latest()
+            ->paginate(10);
 
         return view('eventos.show', compact('evento', 'perguntas'));
     }
@@ -43,11 +45,22 @@ class EventoController extends Controller
 
         Pergunta::create([
             'evento_id' => $evento->id,
+            'user_id' => Auth::user()->id,
             'texto'     => $request->input('texto'),
             'status'    => 'pendente',
         ]);
 
         return redirect()->route('eventos.show', $evento->id)
             ->with('sucesso', 'Sua pergunta foi enviada com sucesso!');
+    }
+
+
+    public function create(){
+        return view('eventos.create');
+    }
+
+    public function store(EventoFormRequest $req){
+        $evento = $req->user()->eventos()->create($req->validated());
+        return redirect()->route('eventos.show', $evento->id);
     }
 }
